@@ -1,4 +1,4 @@
-# A telegram bot for tracking new episodes of TV series on HDOut.tv
+# A telegram bot for tracking new episodes of TV series on HDOut.TV
 
 from datetime import datetime
 import logging

@@ -1,6 +1,7 @@
 .DS_Store
 *.log
 *.pyc
+*.db
 __pycache__/
 config.py
 .idea/

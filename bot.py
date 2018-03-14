@@ -1,41 +1,43 @@
 # A telegram bot for tracking new episodes of TV series on HDOut.TV
-
-from datetime import datetime, timedelta
 import logging
 
-import feedparser
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 import config
-from constants import GREETING, BASE_URL
-
+from constants import GREETING, ERROR_NO_DATA
+from databases import add_to_db, check_db
+from parser import parse_rss
 
 logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG,
                     filename='bot.log')
 
-delta = timedelta(days=1)
 
-def  greet_user(bot, update):
-    # TODO проверяем наличие id в БД, если нет - приетствие с инструкцией, если да -  другое приветствие
+def greet_user(bot, update):
     update.message.reply_text(GREETING)
 
 
-def get_user_id(bot, update):
+def get_user_info(bot, update):
     user_text = update.message.text
     logging.info(user_text)
-    whats_news(bot, update, user_id=user_text)
+    episodes_list = parse_rss(hdout_id=user_text)
+    if episodes_list is None:
+        update.message.reply_text(ERROR_NO_DATA)
+        update.message.reply_text(GREETING)
+        return
+    send_news(bot, update,
+              hdout_id=user_text,
+              episodes_list=episodes_list
+              )
 
 
-def whats_news(bot, update, user_id):
-    rss = '{}{}/'.format(BASE_URL, user_id)
-    # TODO обработка 404 и пустого rss
-    favorite_series = feedparser.parse(rss)
-    for series in favorite_series.entries:
-        published_datetime = datetime.strptime(series.published, '%a, %d %b %Y %H:%M:%S %Z')
-        tdelta = datetime.now() - published_datetime
-        if tdelta <= delta:
-            update.message.reply_text(series.published + '\n' + series.title + '\n' + series.link + '\n')
+def send_news(bot, update, hdout_id, episodes_list):
+    for epi in episodes_list:
+        title = epi[0]
+        sent = check_db(hdout_id=hdout_id, title=title)
+        if sent is False:
+            update.message.reply_text(epi[0] + '\n' + epi[1] + '\n' + epi[2] + '\n')
+            add_to_db(hdout_id=hdout_id, title=title)
 
 
 def main():
@@ -43,7 +45,7 @@ def main():
 
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", greet_user))
-    dp.add_handler(MessageHandler(Filters.text, get_user_id))
+    dp.add_handler(MessageHandler(Filters.text, get_user_info))
 
     updater.start_polling()
     updater.idle()

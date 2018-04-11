@@ -4,19 +4,20 @@ import feedparser
 
 from constants import BASE_URL
 
-delta = timedelta(days=2)
 
-
-def parse_rss(hdout_id):
+def parse_rss(hdout_id, delta=timedelta(days=1)):
     episodes = []
     rss = '{}{}/'.format(BASE_URL, hdout_id)
     favorite_series = feedparser.parse(rss)
     if len(favorite_series.entries) == 0:
-        return
+        return None
     for series in favorite_series.entries:
         published_datetime = datetime.strptime(series.published, '%a, %d %b %Y %H:%M:%S %Z')
-        tdelta = datetime.now() - published_datetime
-        if tdelta <= delta:
+        if delta is not None:
+            tdelta = datetime.now() - published_datetime
+            if tdelta <= delta:
+                episodes.append((series.title, series.published, series.link))
+        else:
             episodes.append((series.title, series.published, series.link))
     return episodes
 

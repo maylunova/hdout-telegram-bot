@@ -48,8 +48,9 @@ def send_news(bot, hdout_id, chat_id, user_id):
 def main():
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                         level=logging.DEBUG)
-
-    updater = Updater(config.TOKEN)
+    updater = Updater(config.TOKEN, request_kwargs={
+        'proxy_url': config.PROXY
+    })
 
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", greet_user))
